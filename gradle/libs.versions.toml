@@ -1,0 +1,37 @@
+[versions]
+junit = "5.10.2"
+assertj = "3.25.3"
+mockito = "5.11.0"
+libgdx = "1.12.1"
+gdx-gltf = "2.2.1"
+spring-boot = "3.2.5"
+spring-dependency-management = "1.1.4"
+okhttp = "4.12.0"
+jacoco = "0.8.12"
+pitest = "1.15.0"
+pitest-plugin = "1.15.0"
+pitest-junit5 = "1.2.1"
+foojay-resolver = "0.9.0"
+
+[libraries]
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+mockito-junit-jupiter = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockito" }
+okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
+
+gdx-core = { module = "com.badlogicgames.gdx:gdx", version.ref = "libgdx" }
+gdx-backend-lwjgl3 = { module = "com.badlogicgames.gdx:gdx-backend-lwjgl3", version.ref = "libgdx" }
+gdx-platform = { module = "com.badlogicgames.gdx:gdx-platform", version.ref = "libgdx" }
+gdx-gltf = { module = "com.github.mgsx-dev.gdx-gltf:gltf", version.ref = "gdx-gltf" }
+
+spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }
+pitest = { id = "info.solidsoft.pitest", version.ref = "pitest-plugin" }
+foojay-resolver = { id = "org.gradle.toolchains.foojay-resolver-convention", version.ref = "foojay-resolver" }
