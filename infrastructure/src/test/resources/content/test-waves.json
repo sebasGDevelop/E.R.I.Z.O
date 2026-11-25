@@ -1,0 +1,15 @@
+[
+  {
+    "number": 2,
+    "groups": [
+      { "enemyType": "trojy", "count": 2, "intervalTicks": 60, "delayTicks": 90 }
+    ]
+  },
+  {
+    "number": 1,
+    "groups": [
+      { "enemyType": "wormy", "count": 6, "intervalTicks": 20, "delayTicks": 0 },
+      { "enemyType": "phisher", "count": 3, "intervalTicks": 40, "delayTicks": 120 }
+    ]
+  }
+]

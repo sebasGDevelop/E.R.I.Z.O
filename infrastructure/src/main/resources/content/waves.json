@@ -1,0 +1,61 @@
+[
+  {
+    "number": 1,
+    "groups": [
+      { "enemyType": "wormy", "count": 6, "intervalTicks": 20, "delayTicks": 0 }
+    ]
+  },
+  {
+    "number": 2,
+    "groups": [
+      { "enemyType": "wormy", "count": 8, "intervalTicks": 18, "delayTicks": 0 },
+      { "enemyType": "trojy", "count": 1, "intervalTicks": 0, "delayTicks": 120 }
+    ]
+  },
+  {
+    "number": 3,
+    "groups": [
+      { "enemyType": "wormy", "count": 10, "intervalTicks": 15, "delayTicks": 0 },
+      { "enemyType": "trojy", "count": 2, "intervalTicks": 60, "delayTicks": 90 }
+    ]
+  },
+  {
+    "number": 4,
+    "groups": [
+      { "enemyType": "phisher", "count": 4, "intervalTicks": 40, "delayTicks": 0 },
+      { "enemyType": "trojy", "count": 2, "intervalTicks": 80, "delayTicks": 60 }
+    ]
+  },
+  {
+    "number": 5,
+    "groups": [
+      { "enemyType": "buzz_cloud", "count": 12, "intervalTicks": 6, "delayTicks": 0 },
+      { "enemyType": "wormy", "count": 8, "intervalTicks": 18, "delayTicks": 120 }
+    ]
+  },
+  {
+    "number": 6,
+    "groups": [
+      { "enemyType": "phisher", "count": 6, "intervalTicks": 30, "delayTicks": 0 },
+      { "enemyType": "trojy", "count": 3, "intervalTicks": 60, "delayTicks": 90 },
+      { "enemyType": "buzz_cloud", "count": 12, "intervalTicks": 6, "delayTicks": 200 }
+    ]
+  },
+  {
+    "number": 7,
+    "groups": [
+      { "enemyType": "trojy", "count": 4, "intervalTicks": 50, "delayTicks": 0 },
+      { "enemyType": "phisher", "count": 6, "intervalTicks": 28, "delayTicks": 40 },
+      { "enemyType": "wormy", "count": 12, "intervalTicks": 12, "delayTicks": 80 }
+    ]
+  },
+  {
+    "number": 8,
+    "groups": [
+      { "enemyType": "trojy", "count": 5, "intervalTicks": 45, "delayTicks": 0 },
+      { "enemyType": "phisher", "count": 8, "intervalTicks": 25, "delayTicks": 30 },
+      { "enemyType": "buzz_cloud", "count": 12, "intervalTicks": 5, "delayTicks": 150 },
+      { "enemyType": "wormy", "count": 14, "intervalTicks": 10, "delayTicks": 200 }
+    ]
+  }
+]
