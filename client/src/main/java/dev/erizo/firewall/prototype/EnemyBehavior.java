@@ -1,13 +1,11 @@
 package dev.erizo.firewall.prototype;
 
 /**
- * Per-type enemy rules: initial stats and the ability applied each tick.
+ * Per-type enemy rules shared by every enemy: its name and initial stats.
  */
 interface EnemyBehavior {
 
     String type();
 
     void configure(Enemy enemy);
-
-    void applyAbility(Enemy enemy, WaveState state);
 }

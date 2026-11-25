@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Wires the console collaborators and runs one defense wave from a command script.
@@ -21,8 +22,11 @@ public final class Game {
         CommandReader commandReader = new CommandReader();
         ConsoleMapRenderer renderer = new ConsoleMapRenderer(out);
         MatchSaver saver = new MatchSaver(out);
+        WormyBehavior wormy = new WormyBehavior(out);
+        TrojyBehavior trojy = new TrojyBehavior(out);
         EnemyCatalog enemyCatalog = new EnemyCatalog(
-                List.of(new WormyBehavior(out), new TrojyBehavior(out)));
+                List.of(wormy, trojy),
+                Map.of(wormy.type(), wormy, trojy.type(), trojy));
         TowerCatalog towerCatalog = new TowerCatalog(
                 List.of(new SpikeWallBehavior(out)));
         WaveSimulation simulation = new WaveSimulation(

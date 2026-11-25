@@ -29,41 +29,42 @@ final class SpikeWallBehavior implements TowerBehavior {
     }
 
     @Override
-    public void update(Tower tower, List<Enemy> enemies, List<GridPosition> path,
+    public void update(Tower tower, List<Targetable> targets, List<GridPosition> path,
             TowerContext context) {
         if (tower.cooldownLeft > 0) {
             tower.cooldownLeft--;
             return;
         }
-        Enemy target = pickFirstInRange(tower, enemies, path);
+        Targetable target = pickFirstInRange(tower, targets, path);
         if (target == null) {
             return;
         }
-        target.integrity -= DAMAGE;
+        double integrity = target.applyDamage(DAMAGE);
         tower.cooldownLeft = COOLDOWN;
-        out.println("HIT id=" + target.id + " integrity=" + target.integrity);
-        if (target.integrity <= 0) {
-            target.disinfected = true;
-            int bits = context.awardBounty(target.bounty);
-            out.println("DISINFECT id=" + target.id + " bits=" + bits);
+        out.println("HIT id=" + target.id() + " integrity=" + integrity);
+        if (integrity <= 0) {
+            target.disinfect();
+            int bits = context.awardBounty(target.bounty());
+            out.println("DISINFECT id=" + target.id() + " bits=" + bits);
         }
     }
 
-    private Enemy pickFirstInRange(Tower tower, List<Enemy> enemies, List<GridPosition> path) {
-        Enemy best = null;
-        for (Enemy enemy : enemies) {
-            if (enemy.disinfected || enemy.leaked) {
+    private Targetable pickFirstInRange(Tower tower, List<Targetable> targets,
+            List<GridPosition> path) {
+        Targetable best = null;
+        for (Targetable target : targets) {
+            if (!target.canBeTargeted()) {
                 continue;
             }
-            GridPosition tile = path.get((int) Math.floor(enemy.progress));
+            GridPosition tile = path.get((int) Math.floor(target.progress()));
             double dx = tile.x() - tower.x;
             double dy = tile.y() - tower.y;
             if (Math.sqrt(dx * dx + dy * dy) > RANGE) {
                 continue;
             }
-            if (best == null || enemy.progress > best.progress
-                    || (enemy.progress == best.progress && enemy.id < best.id)) {
-                best = enemy;
+            if (best == null || target.progress() > best.progress()
+                    || (target.progress() == best.progress() && target.id() < best.id())) {
+                best = target;
             }
         }
         return best;

@@ -113,25 +113,31 @@ final class WaveSimulation implements WaveState, TowerContext {
     }
 
     private void spawnEnemy(String type) {
-        EnemyBehavior behavior = enemyCatalog.behaviorFor(type);
-        Enemy enemy = new Enemy();
-        enemy.id = nextEnemyId++;
-        enemy.type = type;
-        enemy.behavior = behavior;
-        behavior.configure(enemy);
+        Enemy enemy = createEnemy(type);
         enemy.progress = random.nextInt(1);
         enemies.add(enemy);
         out.println("SPAWN " + type + " id=" + enemy.id + " tick=" + tick);
     }
 
+    private Enemy createEnemy(String type) {
+        EnemyBehavior behavior = enemyCatalog.behaviorFor(type);
+        Enemy enemy = new Enemy();
+        enemy.id = nextEnemyId++;
+        enemy.type = type;
+        enemy.ability = enemyCatalog.abilityFor(type);
+        behavior.configure(enemy);
+        return enemy;
+    }
+
     private void moveEnemies() {
         for (Enemy enemy : enemies) {
-            if (enemy.disinfected || enemy.leaked) {
+            PathWalker walker = enemy;
+            if (!walker.isActive()) {
                 continue;
             }
             enemy.ageTicks++;
-            enemy.progress += enemy.speed / 10.0;
-            if (enemy.progress >= path.size() - 1) {
+            walker.advance(walker.speed() / 10.0);
+            if (walker.progress() >= path.size() - 1) {
                 enemy.leaked = true;
                 nodeIntegrity -= enemy.leak;
                 out.println("LEAK " + enemy.type + " id=" + enemy.id
@@ -142,18 +148,19 @@ final class WaveSimulation implements WaveState, TowerContext {
 
     private void applyEnemyAbilities() {
         for (Enemy enemy : enemies) {
-            if (enemy.disinfected || enemy.leaked) {
+            if (!enemy.isActive() || enemy.ability == null) {
                 continue;
             }
-            enemy.behavior.applyAbility(enemy, this);
+            enemy.ability.applyAbility(enemy, this);
         }
         enemies.addAll(pendingSpawns);
         pendingSpawns.clear();
     }
 
     private void updateTowers() {
+        List<Targetable> targets = new ArrayList<>(enemies);
         for (Tower tower : towers) {
-            tower.behavior.update(tower, enemies, path, this);
+            tower.behavior.update(tower, targets, path, this);
         }
     }
 
@@ -168,12 +175,7 @@ final class WaveSimulation implements WaveState, TowerContext {
 
     @Override
     public void spawnOffspring(String type, double progress) {
-        EnemyBehavior behavior = enemyCatalog.behaviorFor(type);
-        Enemy enemy = new Enemy();
-        enemy.id = nextEnemyId++;
-        enemy.type = type;
-        enemy.behavior = behavior;
-        behavior.configure(enemy);
+        Enemy enemy = createEnemy(type);
         enemy.progress = progress;
         pendingSpawns.add(enemy);
         out.println("SPAWN " + type + " id=" + enemy.id + " tick=" + tick);

@@ -5,7 +5,7 @@ import java.io.PrintStream;
 /**
  * Wormy stats and its single duplication once it survives long enough.
  */
-final class WormyBehavior implements EnemyBehavior {
+final class WormyBehavior implements EnemyBehavior, SpawnsOnEvent {
 
     private static final int DUPLICATE_TICK = 60;
 

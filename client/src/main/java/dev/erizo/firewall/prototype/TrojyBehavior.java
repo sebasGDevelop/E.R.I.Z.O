@@ -5,7 +5,7 @@ import java.io.PrintStream;
 /**
  * Trojy stats and the release of two Wormy once it passes half the path.
  */
-final class TrojyBehavior implements EnemyBehavior {
+final class TrojyBehavior implements EnemyBehavior, SpawnsOnEvent {
 
     private final PrintStream out;
 

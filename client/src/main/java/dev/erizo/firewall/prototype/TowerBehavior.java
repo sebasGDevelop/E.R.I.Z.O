@@ -11,5 +11,6 @@ interface TowerBehavior {
 
     int cost();
 
-    void update(Tower tower, List<Enemy> enemies, List<GridPosition> path, TowerContext context);
+    void update(Tower tower, List<Targetable> targets, List<GridPosition> path,
+            TowerContext context);
 }
