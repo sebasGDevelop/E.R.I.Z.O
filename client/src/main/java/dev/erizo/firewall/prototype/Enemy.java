@@ -15,6 +15,7 @@ final class Enemy implements PathWalker, Targetable {
     int ageTicks;
     boolean duplicated;
     boolean released;
+    boolean disguised;
     boolean disinfected;
     boolean leaked;
 
@@ -50,7 +51,7 @@ final class Enemy implements PathWalker, Targetable {
 
     @Override
     public boolean canBeTargeted() {
-        return isActive();
+        return isActive() && !disguised;
     }
 
     @Override

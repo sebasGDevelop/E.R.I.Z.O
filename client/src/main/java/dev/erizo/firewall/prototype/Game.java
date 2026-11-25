@@ -35,8 +35,9 @@ public final class Game {
         ConsoleMapRenderer renderer = new ConsoleMapRenderer(output);
         WormyBehavior wormy = new WormyBehavior(output);
         TrojyBehavior trojy = new TrojyBehavior(output);
+        PhisherBehavior phisher = new PhisherBehavior();
         EnemyCatalog enemyCatalog = new EnemyCatalog(
-                List.of(wormy, trojy),
+                List.of(wormy, trojy, phisher),
                 Map.of(wormy.type(), wormy, trojy.type(), trojy));
         TowerCatalog towerCatalog = new TowerCatalog(
                 List.of(new SpikeWallBehavior(output)));

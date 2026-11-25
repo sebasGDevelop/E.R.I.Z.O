@@ -51,6 +51,15 @@ class WaveSimulationTest {
     }
 
     @Test
+    void run_whenPhisherDisguised_spikeWallNeverTargetsIt() {
+        WaveSimulation simulation = simulationWith(waveOf(new WaveEntry("PHISHER", 1, 0, 0)));
+
+        simulation.run(List.of("PLACE SPIKE 0 1", "RUN 20"));
+
+        assertThat(output.lines()).noneMatch(line -> line.startsWith("HIT"));
+    }
+
+    @Test
     void run_always_savesFinalSnapshotThroughStorage() {
         MatchStorage storage = Mockito.mock(MatchStorage.class);
         WaveSimulation simulation = simulationWith(waveOf(), storage);
@@ -69,8 +78,9 @@ class WaveSimulationTest {
     private WaveSimulation simulationWith(WaveDefinition wave, MatchStorage storage) {
         WormyBehavior wormy = new WormyBehavior(output);
         TrojyBehavior trojy = new TrojyBehavior(output);
+        PhisherBehavior phisher = new PhisherBehavior();
         EnemyCatalog enemyCatalog = new EnemyCatalog(
-                List.of(wormy, trojy),
+                List.of(wormy, trojy, phisher),
                 Map.of(wormy.type(), wormy, trojy.type(), trojy));
         TowerCatalog towerCatalog = new TowerCatalog(List.of(new SpikeWallBehavior(output)));
         ConsoleMapRenderer renderer = new ConsoleMapRenderer(output);
