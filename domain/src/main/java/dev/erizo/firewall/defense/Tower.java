@@ -7,10 +7,15 @@ import java.util.List;
 /** A placed defensive tower occupying one BUILD tile. */
 public final class Tower {
 
+    public static final int MAX_UPGRADES = 2;
+
     private final TowerId id;
     private final TowerKind kind;
     private final GridPosition position;
     private TargetStrategy targetStrategy;
+    private TowerProfile profile;
+    private int upgradeCount;
+    private int bitsSpent;
     private int cooldownRemaining;
 
     public Tower(TowerId id, TowerKind kind, GridPosition position) {
@@ -18,7 +23,25 @@ public final class Tower {
         this.kind = kind;
         this.position = position;
         this.targetStrategy = new FirstTarget();
+        this.profile = new BaseProfile(kind.stats());
+        this.upgradeCount = 0;
+        this.bitsSpent = kind.cost();
         this.cooldownRemaining = 0;
+    }
+
+    /** Rejects a further upgrade once the per-tower limit is reached. */
+    public void requireUpgradeAllowed() {
+        if (upgradeCount >= MAX_UPGRADES) {
+            throw new UpgradeLimitReachedException("Tower already has " + MAX_UPGRADES + " upgrades");
+        }
+    }
+
+    /** Applies an upgrade, rejecting it once the per-tower limit is reached. */
+    public void upgradeWith(UpgradeKind upgrade) {
+        requireUpgradeAllowed();
+        profile = upgrade.apply(profile);
+        upgradeCount++;
+        bitsSpent += upgrade.cost();
     }
 
     /** Performs this tower's per-tick action on the enemies within its range. */
@@ -53,7 +76,20 @@ public final class Tower {
     }
 
     public boolean covers(Enemy enemy, EnemyPath path) {
-        return position.distanceTo(enemy.positionOn(path)) <= kind.stats().rangeTiles();
+        return position.distanceTo(enemy.positionOn(path)) <= profile.rangeTiles();
+    }
+
+    public int shotsPerCooldown() {
+        return profile.shotsPerCooldown();
+    }
+
+    public int upgradeCount() {
+        return upgradeCount;
+    }
+
+    /** The refund for selling this tower: 70% of all bits spent on it. */
+    public int sellRefund() {
+        return (int) Math.floor(bitsSpent * 0.70);
     }
 
     public TowerId id() {

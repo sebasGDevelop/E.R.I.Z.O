@@ -52,6 +52,21 @@ public final class DefenseMatch {
         tower.retargetWith(strategy);
     }
 
+    /** Upgrades a tower, rejecting it when the limit is reached or bits are short. */
+    public void upgradeTower(Tower tower, UpgradeKind upgrade) {
+        tower.requireUpgradeAllowed();
+        bits = bits.spend(upgrade.cost());
+        tower.upgradeWith(upgrade);
+    }
+
+    /** Sells a tower, removing it and refunding 70% of the bits spent on it. */
+    public void sellTower(Tower tower) {
+        if (!towers.remove(tower)) {
+            throw new InvalidPlacementException("Tower is not on the field");
+        }
+        bits = bits.add(tower.sellRefund());
+    }
+
     /** Runs every tower's per-tick action against the enemies within its range. */
     public void tickTowers() {
         for (Tower tower : towers) {

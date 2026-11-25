@@ -11,7 +11,11 @@ abstract class CooldownBehavior implements TowerBehavior {
             tower.tickCooldown();
             return;
         }
-        if (fire(tower, enemiesInRange, path)) {
+        boolean firedAny = false;
+        for (int shot = 0; shot < tower.shotsPerCooldown(); shot++) {
+            firedAny = fire(tower, enemiesInRange, path) || firedAny;
+        }
+        if (firedAny) {
             tower.startCooldown();
         }
     }
