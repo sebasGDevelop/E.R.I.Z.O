@@ -1,7 +1,5 @@
 package dev.erizo.firewall.prototype;
 
-import java.io.PrintStream;
-
 /**
  * Wormy stats and its single duplication once it survives long enough.
  */
@@ -9,10 +7,10 @@ final class WormyBehavior implements EnemyBehavior, SpawnsOnEvent {
 
     private static final int DUPLICATE_TICK = 60;
 
-    private final PrintStream out;
+    private final SimulationOutput output;
 
-    WormyBehavior(PrintStream out) {
-        this.out = out;
+    WormyBehavior(SimulationOutput output) {
+        this.output = output;
     }
 
     @Override
@@ -33,7 +31,7 @@ final class WormyBehavior implements EnemyBehavior, SpawnsOnEvent {
         if (!enemy.duplicated && enemy.ageTicks >= DUPLICATE_TICK) {
             enemy.duplicated = true;
             state.spawnOffspring("WORMY", enemy.progress);
-            out.println("DUPLICATE WORMY id=" + enemy.id);
+            output.line("DUPLICATE WORMY id=" + enemy.id);
         }
     }
 }

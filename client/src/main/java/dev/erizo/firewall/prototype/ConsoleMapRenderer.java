@@ -1,17 +1,16 @@
 package dev.erizo.firewall.prototype;
 
-import java.io.PrintStream;
 import java.util.List;
 
 /**
- * Prints a snapshot of the map with towers and enemies to the console.
+ * Renders a snapshot of the map with towers and enemies to the output.
  */
 final class ConsoleMapRenderer {
 
-    private final PrintStream out;
+    private final SimulationOutput output;
 
-    ConsoleMapRenderer(PrintStream out) {
-        this.out = out;
+    ConsoleMapRenderer(SimulationOutput output) {
+        this.output = output;
     }
 
     void render(char[][] map, List<GridPosition> path, List<Tower> towers,
@@ -29,10 +28,10 @@ final class ConsoleMapRenderer {
             GridPosition tile = path.get((int) Math.floor(enemy.progress));
             frame[tile.y()][tile.x()] = 'e';
         }
-        out.println("--- tick " + tick + " bits=" + bits
+        output.line("--- tick " + tick + " bits=" + bits
                 + " integrity=" + nodeIntegrity + " ---");
         for (int y = 0; y < height; y++) {
-            out.println(new String(frame[y]));
+            output.line(new String(frame[y]));
         }
     }
 }

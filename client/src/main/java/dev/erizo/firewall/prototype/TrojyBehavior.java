@@ -1,16 +1,14 @@
 package dev.erizo.firewall.prototype;
 
-import java.io.PrintStream;
-
 /**
  * Trojy stats and the release of two Wormy once it passes half the path.
  */
 final class TrojyBehavior implements EnemyBehavior, SpawnsOnEvent {
 
-    private final PrintStream out;
+    private final SimulationOutput output;
 
-    TrojyBehavior(PrintStream out) {
-        this.out = out;
+    TrojyBehavior(SimulationOutput output) {
+        this.output = output;
     }
 
     @Override
@@ -32,7 +30,7 @@ final class TrojyBehavior implements EnemyBehavior, SpawnsOnEvent {
             enemy.released = true;
             state.spawnOffspring("WORMY", enemy.progress);
             state.spawnOffspring("WORMY", enemy.progress);
-            out.println("OPEN TROJY id=" + enemy.id);
+            output.line("OPEN TROJY id=" + enemy.id);
         }
     }
 }

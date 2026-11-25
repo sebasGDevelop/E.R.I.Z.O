@@ -5,3 +5,4 @@ package dev.erizo.firewall.prototype;
  */
 public record GridPosition(int x, int y) {
 }
+

@@ -1,6 +1,5 @@
 package dev.erizo.firewall.prototype;
 
-import java.io.PrintStream;
 import java.util.List;
 
 /**
@@ -12,10 +11,10 @@ final class SpikeWallBehavior implements TowerBehavior {
     private static final int DAMAGE = 3;
     private static final int COOLDOWN = 10;
 
-    private final PrintStream out;
+    private final SimulationOutput output;
 
-    SpikeWallBehavior(PrintStream out) {
-        this.out = out;
+    SpikeWallBehavior(SimulationOutput output) {
+        this.output = output;
     }
 
     @Override
@@ -41,11 +40,11 @@ final class SpikeWallBehavior implements TowerBehavior {
         }
         double integrity = target.applyDamage(DAMAGE);
         tower.cooldownLeft = COOLDOWN;
-        out.println("HIT id=" + target.id() + " integrity=" + integrity);
+        output.line("HIT id=" + target.id() + " integrity=" + integrity);
         if (integrity <= 0) {
             target.disinfect();
             int bits = context.awardBounty(target.bounty());
-            out.println("DISINFECT id=" + target.id() + " bits=" + bits);
+            output.line("DISINFECT id=" + target.id() + " bits=" + bits);
         }
     }
 

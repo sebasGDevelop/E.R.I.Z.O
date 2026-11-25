@@ -1,4 +1,4 @@
-package dev.erizo.firewall.prototype;
+package dev.erizo.firewall.prototype.adapter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -12,9 +12,9 @@ import java.util.List;
 /**
  * Reads the command script into the lines the simulation executes.
  */
-final class CommandReader {
+public final class CommandReader {
 
-    List<String> read(InputStream in) {
+    public List<String> read(InputStream in) {
         List<String> commands = new ArrayList<>();
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(in, StandardCharsets.UTF_8));

@@ -1,35 +1,25 @@
 package dev.erizo.firewall.prototype;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 /**
  * Advances one defense wave in fixed ticks and delegates type-specific rules.
  */
 final class WaveSimulation implements WaveState, TowerContext {
 
-    private static final int WIDTH = 12;
-    private static final int HEIGHT = 8;
     private static final int NODE_START_INTEGRITY = 20;
     private static final int STARTING_BITS = 100;
 
-    private final PrintStream out;
+    private final SimulationOutput output;
+    private final RandomSource random;
+    private final MatchStorage storage;
     private final ConsoleMapRenderer renderer;
-    private final MatchSaver saver;
     private final EnemyCatalog enemyCatalog;
     private final TowerCatalog towerCatalog;
-    private final Random random = new Random(42);
 
-    private char[][] map;
-    private List<GridPosition> path;
+    private final char[][] map;
+    private final List<GridPosition> path;
     private final List<Enemy> enemies = new ArrayList<>();
     private final List<Tower> towers = new ArrayList<>();
     private final List<Enemy> pendingSpawns = new ArrayList<>();
@@ -45,22 +35,26 @@ final class WaveSimulation implements WaveState, TowerContext {
         String type;
     }
 
-    WaveSimulation(PrintStream out, ConsoleMapRenderer renderer, MatchSaver saver,
-            EnemyCatalog enemyCatalog, TowerCatalog towerCatalog) {
-        this.out = out;
+    WaveSimulation(SimulationOutput output, RandomSource random, MatchStorage storage,
+            ConsoleMapRenderer renderer, EnemyCatalog enemyCatalog, TowerCatalog towerCatalog,
+            MapData mapData, WaveDefinition wave) {
+        this.output = output;
+        this.random = random;
+        this.storage = storage;
         this.renderer = renderer;
-        this.saver = saver;
         this.enemyCatalog = enemyCatalog;
         this.towerCatalog = towerCatalog;
+        this.map = mapData.grid();
+        this.path = mapData.path();
+        scheduleSpawns(wave);
     }
 
     void run(List<String> commands) {
-        loadMap();
-        loadWave();
         for (String command : commands) {
             handleCommand(command);
         }
-        saver.save(tick, bits, nodeIntegrity);
+        storage.save(new MatchSnapshot(tick, bits, nodeIntegrity));
+        output.line("SAVED tick=" + tick + " bits=" + bits + " integrity=" + nodeIntegrity);
     }
 
     private void handleCommand(String command) {
@@ -78,7 +72,7 @@ final class WaveSimulation implements WaveState, TowerContext {
     private void placeTower(String kind, int x, int y) {
         TowerBehavior behavior = towerCatalog.behaviorFor(kind);
         if (bits < behavior.cost()) {
-            out.println("REJECTED place " + kind + ": not enough bits");
+            output.line("REJECTED place " + kind + ": not enough bits");
             return;
         }
         Tower tower = new Tower();
@@ -89,7 +83,7 @@ final class WaveSimulation implements WaveState, TowerContext {
         tower.cooldownLeft = 0;
         towers.add(tower);
         bits -= behavior.cost();
-        out.println("PLACED " + kind + " at " + x + "," + y + " bits=" + bits);
+        output.line("PLACED " + kind + " at " + x + "," + y + " bits=" + bits);
     }
 
     private void advanceTick() {
@@ -116,7 +110,7 @@ final class WaveSimulation implements WaveState, TowerContext {
         Enemy enemy = createEnemy(type);
         enemy.progress = random.nextInt(1);
         enemies.add(enemy);
-        out.println("SPAWN " + type + " id=" + enemy.id + " tick=" + tick);
+        output.line("SPAWN " + type + " id=" + enemy.id + " tick=" + tick);
     }
 
     private Enemy createEnemy(String type) {
@@ -140,7 +134,7 @@ final class WaveSimulation implements WaveState, TowerContext {
             if (walker.progress() >= path.size() - 1) {
                 enemy.leaked = true;
                 nodeIntegrity -= enemy.leak;
-                out.println("LEAK " + enemy.type + " id=" + enemy.id
+                output.line("LEAK " + enemy.type + " id=" + enemy.id
                         + " integrity=" + nodeIntegrity);
             }
         }
@@ -178,7 +172,7 @@ final class WaveSimulation implements WaveState, TowerContext {
         Enemy enemy = createEnemy(type);
         enemy.progress = progress;
         pendingSpawns.add(enemy);
-        out.println("SPAWN " + type + " id=" + enemy.id + " tick=" + tick);
+        output.line("SPAWN " + type + " id=" + enemy.id + " tick=" + tick);
     }
 
     @Override
@@ -187,67 +181,14 @@ final class WaveSimulation implements WaveState, TowerContext {
         return bits;
     }
 
-    private void loadMap() {
-        List<String> lines = readResourceLines("/map-r1.txt");
-        map = new char[HEIGHT][WIDTH];
-        path = new ArrayList<>();
-        GridPosition spawn = null;
-        GridPosition node = null;
-        for (int y = 0; y < HEIGHT; y++) {
-            char[] row = lines.get(y).toCharArray();
-            for (int x = 0; x < WIDTH; x++) {
-                map[y][x] = row[x];
-                if (row[x] == 'S') {
-                    spawn = new GridPosition(x, y);
-                } else if (row[x] == 'N') {
-                    node = new GridPosition(x, y);
-                }
-            }
-        }
-        buildPath(spawn, node);
-    }
-
-    private void buildPath(GridPosition spawn, GridPosition node) {
-        int y = spawn.y();
-        for (int x = spawn.x(); x <= node.x(); x++) {
-            path.add(new GridPosition(x, y));
-        }
-    }
-
-    private void loadWave() {
-        for (String line : readResourceLines("/wave-r1.txt")) {
-            if (line.isBlank()) {
-                continue;
-            }
-            String[] parts = line.trim().split("\\s+");
-            String type = parts[0];
-            int count = Integer.parseInt(parts[1]);
-            int interval = Integer.parseInt(parts[2]);
-            int delay = Integer.parseInt(parts[3]);
-            for (int i = 0; i < count; i++) {
+    private void scheduleSpawns(WaveDefinition wave) {
+        for (WaveEntry entry : wave.entries()) {
+            for (int i = 0; i < entry.count(); i++) {
                 SpawnOrder order = new SpawnOrder();
-                order.tick = delay + i * interval + 1;
-                order.type = type;
+                order.tick = entry.delayTicks() + i * entry.intervalTicks() + 1;
+                order.type = entry.enemyType();
                 spawnSchedule.add(order);
             }
-        }
-    }
-
-    private List<String> readResourceLines(String resource) {
-        try (InputStream in = WaveSimulation.class.getResourceAsStream(resource)) {
-            if (in == null) {
-                throw new IllegalStateException("missing resource " + resource);
-            }
-            List<String> lines = new ArrayList<>();
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(in, StandardCharsets.UTF_8));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                lines.add(line);
-            }
-            return lines;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
         }
     }
 }
