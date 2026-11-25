@@ -97,7 +97,7 @@ final class WaveSimulation implements WaveState, TowerContext {
         spawnDueEnemies();
         moveEnemies();
         applyEnemyAbilities();
-        fireTowers();
+        updateTowers();
         removeFinishedEnemies();
         if (tick % 10 == 0) {
             renderer.render(map, path, towers, enemies, tick, bits, nodeIntegrity);
@@ -151,13 +151,9 @@ final class WaveSimulation implements WaveState, TowerContext {
         pendingSpawns.clear();
     }
 
-    private void fireTowers() {
+    private void updateTowers() {
         for (Tower tower : towers) {
-            if (tower.cooldownLeft > 0) {
-                tower.cooldownLeft--;
-                continue;
-            }
-            tower.behavior.fire(tower, enemies, path, this);
+            tower.behavior.update(tower, enemies, path, this);
         }
     }
 

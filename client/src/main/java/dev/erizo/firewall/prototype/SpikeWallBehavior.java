@@ -10,6 +10,7 @@ final class SpikeWallBehavior implements TowerBehavior {
 
     private static final int RANGE = 2;
     private static final int DAMAGE = 3;
+    private static final int COOLDOWN = 10;
 
     private final PrintStream out;
 
@@ -28,19 +29,18 @@ final class SpikeWallBehavior implements TowerBehavior {
     }
 
     @Override
-    public int cooldown() {
-        return 10;
-    }
-
-    @Override
-    public void fire(Tower tower, List<Enemy> enemies, List<GridPosition> path,
+    public void update(Tower tower, List<Enemy> enemies, List<GridPosition> path,
             TowerContext context) {
+        if (tower.cooldownLeft > 0) {
+            tower.cooldownLeft--;
+            return;
+        }
         Enemy target = pickFirstInRange(tower, enemies, path);
         if (target == null) {
             return;
         }
         target.integrity -= DAMAGE;
-        tower.cooldownLeft = cooldown();
+        tower.cooldownLeft = COOLDOWN;
         out.println("HIT id=" + target.id + " integrity=" + target.integrity);
         if (target.integrity <= 0) {
             target.disinfected = true;

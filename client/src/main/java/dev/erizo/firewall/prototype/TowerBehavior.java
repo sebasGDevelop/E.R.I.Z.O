@@ -3,7 +3,7 @@ package dev.erizo.firewall.prototype;
 import java.util.List;
 
 /**
- * Per-type tower rules: placement cost and the effect applied each cooldown.
+ * Per-type tower rules every tower honors: placement cost and a per-tick update.
  */
 interface TowerBehavior {
 
@@ -11,7 +11,5 @@ interface TowerBehavior {
 
     int cost();
 
-    int cooldown();
-
-    void fire(Tower tower, List<Enemy> enemies, List<GridPosition> path, TowerContext context);
+    void update(Tower tower, List<Enemy> enemies, List<GridPosition> path, TowerContext context);
 }
