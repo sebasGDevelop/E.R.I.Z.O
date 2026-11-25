@@ -12,6 +12,7 @@ public final class DefenseMatch {
     private final MapLayout map;
     private final EnemyPath path;
     private final List<Tower> towers;
+    private final List<Enemy> enemies;
     private Bits bits;
     private NodeIntegrity nodeIntegrity;
     private long nextTowerId;
@@ -20,6 +21,7 @@ public final class DefenseMatch {
         this.map = map;
         this.path = path;
         this.towers = new ArrayList<>();
+        this.enemies = new ArrayList<>();
         this.bits = Bits.starting();
         this.nodeIntegrity = NodeIntegrity.full();
         this.nextTowerId = 1;
@@ -40,9 +42,30 @@ public final class DefenseMatch {
         return tower;
     }
 
+    /** Adds an enemy to the field, as a wave spawns or a test sets up. */
+    public void addEnemy(Enemy enemy) {
+        enemies.add(enemy);
+    }
+
+    /** Changes a placed tower's targeting strategy. */
+    public void changeTarget(Tower tower, TargetStrategy strategy) {
+        tower.retargetWith(strategy);
+    }
+
+    /** Runs every tower's per-tick action against the enemies within its range. */
+    public void tickTowers() {
+        for (Tower tower : towers) {
+            tower.act(enemiesInRangeOf(tower), path);
+        }
+    }
+
     /** Adds a disinfected enemy's bounty to the player's bits. */
     public void rewardDisinfect(Enemy enemy) {
         bits = bits.add(enemy.bounty());
+    }
+
+    public List<Enemy> enemies() {
+        return List.copyOf(enemies);
     }
 
     public Optional<Tower> towerAt(GridPosition position) {
@@ -71,5 +94,12 @@ public final class DefenseMatch {
         if (towerAt(position).isPresent()) {
             throw new InvalidPlacementException("Tile " + position + " is already occupied");
         }
+    }
+
+    private List<Enemy> enemiesInRangeOf(Tower tower) {
+        return enemies.stream()
+                .filter(enemy -> !enemy.isDisinfected())
+                .filter(enemy -> tower.covers(enemy, path))
+                .toList();
     }
 }

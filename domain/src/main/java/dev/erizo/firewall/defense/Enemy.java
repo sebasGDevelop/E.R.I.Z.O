@@ -75,6 +75,10 @@ public final class Enemy {
         return state.isDisinfected();
     }
 
+    public boolean isSwarmMember() {
+        return kind.swarmMember();
+    }
+
     public EnemyId id() {
         return id;
     }
