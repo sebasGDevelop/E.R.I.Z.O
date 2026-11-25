@@ -12,29 +12,27 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Advances one defense wave in fixed ticks and applies tower and enemy rules.
+ * Advances one defense wave in fixed ticks and delegates type-specific rules.
  */
-final class WaveSimulation {
+final class WaveSimulation implements WaveState, TowerContext {
 
     private static final int WIDTH = 12;
     private static final int HEIGHT = 8;
     private static final int NODE_START_INTEGRITY = 20;
     private static final int STARTING_BITS = 100;
-    private static final int SPIKE_COST = 40;
-    private static final int SPIKE_RANGE = 2;
-    private static final int SPIKE_COOLDOWN = 10;
-    private static final int SPIKE_DAMAGE = 3;
-    private static final int WORMY_DUPLICATE_TICK = 60;
 
     private final PrintStream out;
     private final ConsoleMapRenderer renderer;
     private final MatchSaver saver;
+    private final EnemyCatalog enemyCatalog;
+    private final TowerCatalog towerCatalog;
     private final Random random = new Random(42);
 
     private char[][] map;
     private List<GridPosition> path;
     private final List<Enemy> enemies = new ArrayList<>();
     private final List<Tower> towers = new ArrayList<>();
+    private final List<Enemy> pendingSpawns = new ArrayList<>();
 
     private int tick;
     private int bits = STARTING_BITS;
@@ -47,10 +45,13 @@ final class WaveSimulation {
         String type;
     }
 
-    WaveSimulation(PrintStream out, ConsoleMapRenderer renderer, MatchSaver saver) {
+    WaveSimulation(PrintStream out, ConsoleMapRenderer renderer, MatchSaver saver,
+            EnemyCatalog enemyCatalog, TowerCatalog towerCatalog) {
         this.out = out;
         this.renderer = renderer;
         this.saver = saver;
+        this.enemyCatalog = enemyCatalog;
+        this.towerCatalog = towerCatalog;
     }
 
     void run(List<String> commands) {
@@ -75,20 +76,20 @@ final class WaveSimulation {
     }
 
     private void placeTower(String kind, int x, int y) {
-        if (kind.equals("SPIKE")) {
-            if (bits < SPIKE_COST) {
-                out.println("REJECTED place SPIKE: not enough bits");
-                return;
-            }
-            Tower tower = new Tower();
-            tower.type = "SPIKE";
-            tower.x = x;
-            tower.y = y;
-            tower.cooldownLeft = 0;
-            towers.add(tower);
-            bits -= SPIKE_COST;
-            out.println("PLACED SPIKE at " + x + "," + y + " bits=" + bits);
+        TowerBehavior behavior = towerCatalog.behaviorFor(kind);
+        if (bits < behavior.cost()) {
+            out.println("REJECTED place " + kind + ": not enough bits");
+            return;
         }
+        Tower tower = new Tower();
+        tower.type = kind;
+        tower.behavior = behavior;
+        tower.x = x;
+        tower.y = y;
+        tower.cooldownLeft = 0;
+        towers.add(tower);
+        bits -= behavior.cost();
+        out.println("PLACED " + kind + " at " + x + "," + y + " bits=" + bits);
     }
 
     private void advanceTick() {
@@ -112,20 +113,12 @@ final class WaveSimulation {
     }
 
     private void spawnEnemy(String type) {
+        EnemyBehavior behavior = enemyCatalog.behaviorFor(type);
         Enemy enemy = new Enemy();
         enemy.id = nextEnemyId++;
         enemy.type = type;
-        if (type.equals("WORMY")) {
-            enemy.integrity = 6;
-            enemy.speed = 1.0;
-            enemy.leak = 1;
-            enemy.bounty = 5;
-        } else if (type.equals("TROJY")) {
-            enemy.integrity = 10;
-            enemy.speed = 0.8;
-            enemy.leak = 2;
-            enemy.bounty = 10;
-        }
+        enemy.behavior = behavior;
+        behavior.configure(enemy);
         enemy.progress = random.nextInt(1);
         enemies.add(enemy);
         out.println("SPAWN " + type + " id=" + enemy.id + " tick=" + tick);
@@ -148,38 +141,14 @@ final class WaveSimulation {
     }
 
     private void applyEnemyAbilities() {
-        List<Enemy> spawned = new ArrayList<>();
         for (Enemy enemy : enemies) {
             if (enemy.disinfected || enemy.leaked) {
                 continue;
             }
-            if (enemy.type.equals("WORMY") && !enemy.duplicated
-                    && enemy.ageTicks >= WORMY_DUPLICATE_TICK) {
-                enemy.duplicated = true;
-                spawned.add(copyAt("WORMY", enemy.progress));
-                out.println("DUPLICATE WORMY id=" + enemy.id);
-            } else if (enemy.type.equals("TROJY") && !enemy.released
-                    && enemy.progress >= (path.size() - 1) / 2.0) {
-                enemy.released = true;
-                spawned.add(copyAt("WORMY", enemy.progress));
-                spawned.add(copyAt("WORMY", enemy.progress));
-                out.println("OPEN TROJY id=" + enemy.id);
-            }
+            enemy.behavior.applyAbility(enemy, this);
         }
-        enemies.addAll(spawned);
-    }
-
-    private Enemy copyAt(String type, double progress) {
-        Enemy enemy = new Enemy();
-        enemy.id = nextEnemyId++;
-        enemy.type = type;
-        enemy.integrity = 6;
-        enemy.speed = 1.0;
-        enemy.leak = 1;
-        enemy.bounty = 5;
-        enemy.progress = progress;
-        out.println("SPAWN " + type + " id=" + enemy.id + " tick=" + tick);
-        return enemy;
+        enemies.addAll(pendingSpawns);
+        pendingSpawns.clear();
     }
 
     private void fireTowers() {
@@ -188,46 +157,36 @@ final class WaveSimulation {
                 tower.cooldownLeft--;
                 continue;
             }
-            if (!tower.type.equals("SPIKE")) {
-                continue;
-            }
-            Enemy target = pickFirstInRange(tower, SPIKE_RANGE);
-            if (target == null) {
-                continue;
-            }
-            target.integrity -= SPIKE_DAMAGE;
-            tower.cooldownLeft = SPIKE_COOLDOWN;
-            out.println("HIT id=" + target.id + " integrity=" + target.integrity);
-            if (target.integrity <= 0) {
-                target.disinfected = true;
-                bits += target.bounty;
-                out.println("DISINFECT id=" + target.id + " bits=" + bits);
-            }
+            tower.behavior.fire(tower, enemies, path, this);
         }
-    }
-
-    private Enemy pickFirstInRange(Tower tower, int range) {
-        Enemy best = null;
-        for (Enemy enemy : enemies) {
-            if (enemy.disinfected || enemy.leaked) {
-                continue;
-            }
-            GridPosition tile = path.get((int) Math.floor(enemy.progress));
-            double dx = tile.x() - tower.x;
-            double dy = tile.y() - tower.y;
-            if (Math.sqrt(dx * dx + dy * dy) > range) {
-                continue;
-            }
-            if (best == null || enemy.progress > best.progress
-                    || (enemy.progress == best.progress && enemy.id < best.id)) {
-                best = enemy;
-            }
-        }
-        return best;
     }
 
     private void removeFinishedEnemies() {
         enemies.removeIf(enemy -> enemy.disinfected || enemy.leaked);
+    }
+
+    @Override
+    public int pathLength() {
+        return path.size();
+    }
+
+    @Override
+    public void spawnOffspring(String type, double progress) {
+        EnemyBehavior behavior = enemyCatalog.behaviorFor(type);
+        Enemy enemy = new Enemy();
+        enemy.id = nextEnemyId++;
+        enemy.type = type;
+        enemy.behavior = behavior;
+        behavior.configure(enemy);
+        enemy.progress = progress;
+        pendingSpawns.add(enemy);
+        out.println("SPAWN " + type + " id=" + enemy.id + " tick=" + tick);
+    }
+
+    @Override
+    public int awardBounty(int bounty) {
+        bits += bounty;
+        return bits;
     }
 
     private void loadMap() {

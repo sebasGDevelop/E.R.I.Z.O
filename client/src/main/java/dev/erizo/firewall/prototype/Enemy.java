@@ -6,6 +6,7 @@ package dev.erizo.firewall.prototype;
 final class Enemy {
     int id;
     String type;
+    EnemyBehavior behavior;
     double integrity;
     double speed;
     int leak;

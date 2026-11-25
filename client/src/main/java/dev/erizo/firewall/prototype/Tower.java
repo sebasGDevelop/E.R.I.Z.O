@@ -5,6 +5,7 @@ package dev.erizo.firewall.prototype;
  */
 final class Tower {
     String type;
+    TowerBehavior behavior;
     int x;
     int y;
     int cooldownLeft;
