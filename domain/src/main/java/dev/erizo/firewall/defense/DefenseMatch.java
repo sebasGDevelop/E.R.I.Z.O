@@ -17,6 +17,8 @@ public final class DefenseMatch {
     private NodeIntegrity nodeIntegrity;
     private long nextTowerId;
 
+    private boolean lost;
+
     private DefenseMatch(MapLayout map, EnemyPath path) {
         this.map = map;
         this.path = path;
@@ -25,6 +27,7 @@ public final class DefenseMatch {
         this.bits = Bits.starting();
         this.nodeIntegrity = NodeIntegrity.full();
         this.nextTowerId = 1;
+        this.lost = false;
     }
 
     /** Starts a match on the given map and path with full node integrity and starting bits. */
@@ -67,10 +70,32 @@ public final class DefenseMatch {
         bits = bits.add(tower.sellRefund());
     }
 
+    /** Upgrades the tower on the given tile, rejecting an empty tile. */
+    public void upgradeTowerAt(GridPosition position, UpgradeKind upgrade) {
+        upgradeTower(requireTowerAt(position), upgrade);
+    }
+
+    /** Sells the tower on the given tile, rejecting an empty tile. */
+    public void sellTowerAt(GridPosition position) {
+        sellTower(requireTowerAt(position));
+    }
+
+    /** Retargets the tower on the given tile, rejecting an empty tile. */
+    public void changeTargetAt(GridPosition position, TargetStrategyKind strategyKind) {
+        requireTowerAt(position).retargetWith(strategyKind.create());
+    }
+
     /** Runs every tower's per-tick action against the enemies within its range. */
     public void tickTowers() {
         for (Tower tower : towers) {
             tower.act(enemiesInRangeOf(tower), path);
+        }
+    }
+
+    /** Moves every active enemy one tick, banking bounties and leaks at the node. */
+    public void advanceEnemies() {
+        for (Enemy enemy : enemies) {
+            advanceEnemy(enemy);
         }
     }
 
@@ -79,8 +104,16 @@ public final class DefenseMatch {
         bits = bits.add(enemy.bounty());
     }
 
+    public boolean isLost() {
+        return lost;
+    }
+
     public List<Enemy> enemies() {
         return List.copyOf(enemies);
+    }
+
+    public List<Enemy> activeEnemies() {
+        return enemies.stream().filter(enemy -> !enemy.isResolved()).toList();
     }
 
     public Optional<Tower> towerAt(GridPosition position) {
@@ -113,8 +146,36 @@ public final class DefenseMatch {
 
     private List<Enemy> enemiesInRangeOf(Tower tower) {
         return enemies.stream()
-                .filter(enemy -> !enemy.isDisinfected())
+                .filter(enemy -> !enemy.isResolved())
                 .filter(enemy -> tower.covers(enemy, path))
                 .toList();
+    }
+
+    private void advanceEnemy(Enemy enemy) {
+        if (enemy.isResolved()) {
+            return;
+        }
+        if (enemy.isDisinfected()) {
+            rewardDisinfect(enemy);
+            enemy.markResolved();
+            return;
+        }
+        enemy.advance();
+        if (enemy.hasReachedNode(path)) {
+            leakAt(enemy);
+        }
+    }
+
+    private void leakAt(Enemy enemy) {
+        nodeIntegrity = nodeIntegrity.subtract(enemy.leak());
+        enemy.markResolved();
+        if (nodeIntegrity.isBreached()) {
+            lost = true;
+        }
+    }
+
+    private Tower requireTowerAt(GridPosition position) {
+        return towerAt(position)
+                .orElseThrow(() -> new InvalidPlacementException("No tower on tile " + position));
     }
 }

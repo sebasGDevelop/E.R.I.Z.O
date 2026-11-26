@@ -11,6 +11,7 @@ public final class Enemy {
     private int health;
     private double progress;
     private EnemyState state;
+    private boolean resolved;
 
     private Enemy(EnemyId id, EnemyKind kind, int health, EnemyState state) {
         this.id = id;
@@ -18,6 +19,7 @@ public final class Enemy {
         this.health = health;
         this.progress = 0.0;
         this.state = state;
+        this.resolved = false;
     }
 
     /** Creates an enemy of the given kind at the start of the path with full health. */
@@ -73,6 +75,16 @@ public final class Enemy {
 
     public boolean isDisinfected() {
         return state.isDisinfected();
+    }
+
+    /** Marks the enemy as removed from play after it is disinfected or leaks. */
+    public void markResolved() {
+        resolved = true;
+    }
+
+    /** Whether the enemy has left play, by disinfection or by reaching the node. */
+    public boolean isResolved() {
+        return resolved;
     }
 
     public boolean isSwarmMember() {
