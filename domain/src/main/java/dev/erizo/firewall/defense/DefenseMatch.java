@@ -13,26 +13,35 @@ public final class DefenseMatch {
     private final EnemyPath path;
     private final List<Tower> towers;
     private final List<Enemy> enemies;
+    private final DomainEventPublisher events;
     private Bits bits;
     private NodeIntegrity nodeIntegrity;
     private long nextTowerId;
+    private int towersSold;
 
     private boolean lost;
 
-    private DefenseMatch(MapLayout map, EnemyPath path) {
+    private DefenseMatch(MapLayout map, EnemyPath path, DomainEventPublisher events) {
         this.map = map;
         this.path = path;
+        this.events = events;
         this.towers = new ArrayList<>();
         this.enemies = new ArrayList<>();
         this.bits = Bits.starting();
         this.nodeIntegrity = NodeIntegrity.full();
         this.nextTowerId = 1;
+        this.towersSold = 0;
         this.lost = false;
     }
 
-    /** Starts a match on the given map and path with full node integrity and starting bits. */
+    /** Starts a match that publishes its events nowhere. */
     public static DefenseMatch start(MapLayout map, EnemyPath path) {
-        return new DefenseMatch(map, path);
+        return new DefenseMatch(map, path, new DomainEventPublisher());
+    }
+
+    /** Starts a match that publishes its events through the given publisher. */
+    public static DefenseMatch start(MapLayout map, EnemyPath path, DomainEventPublisher events) {
+        return new DefenseMatch(map, path, events);
     }
 
     /** Places a tower of the given kind, rejecting an illegal tile or insufficient bits. */
@@ -42,6 +51,7 @@ public final class DefenseMatch {
         bits = bits.spend(kind.cost());
         Tower tower = new Tower(new TowerId(nextTowerId++), kind, position);
         towers.add(tower);
+        events.publish(new TowerPlaced(tower.id(), kind, position));
         return tower;
     }
 
@@ -68,6 +78,7 @@ public final class DefenseMatch {
             throw new InvalidPlacementException("Tower is not on the field");
         }
         bits = bits.add(tower.sellRefund());
+        towersSold++;
     }
 
     /** Upgrades the tower on the given tile, rejecting an empty tile. */
@@ -104,8 +115,17 @@ public final class DefenseMatch {
         bits = bits.add(enemy.bounty());
     }
 
+    /** Publishes a match event to the registered listeners. */
+    public void publish(DomainEvent event) {
+        events.publish(event);
+    }
+
     public boolean isLost() {
         return lost;
+    }
+
+    public int towersSold() {
+        return towersSold;
     }
 
     public List<Enemy> enemies() {
@@ -158,6 +178,7 @@ public final class DefenseMatch {
         if (enemy.isDisinfected()) {
             rewardDisinfect(enemy);
             enemy.markResolved();
+            events.publish(new EnemyDisinfected(enemy.id(), enemy.bounty()));
             return;
         }
         enemy.advance();
@@ -169,6 +190,7 @@ public final class DefenseMatch {
     private void leakAt(Enemy enemy) {
         nodeIntegrity = nodeIntegrity.subtract(enemy.leak());
         enemy.markResolved();
+        events.publish(new NodeDamaged(enemy.leak(), nodeIntegrity.value()));
         if (nodeIntegrity.isBreached()) {
             lost = true;
         }

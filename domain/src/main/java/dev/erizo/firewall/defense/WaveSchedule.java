@@ -37,9 +37,11 @@ final class WaveSchedule {
         if (!match.activeEnemies().isEmpty()) {
             return;
         }
+        int clearedNumber = current().number();
         wavesCleared++;
         currentIndex++;
         currentStartTick = tick + Wave.BUILD_TIME_TICKS;
+        match.publish(new WaveCleared(clearedNumber));
     }
 
     boolean allWavesCleared() {
