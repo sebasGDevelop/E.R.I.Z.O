@@ -115,6 +115,14 @@ public final class DefenseMatch {
         bits = bits.add(enemy.bounty());
     }
 
+    /** Applies a finished mission: a completed one adds its bits, a failed one loses nothing. */
+    public void applyMissionReward(String missionId, boolean success, int bitsReward) {
+        if (success) {
+            bits = bits.add(bitsReward);
+        }
+        events.publish(new MissionFinished(missionId, success));
+    }
+
     /** Publishes a match event to the registered listeners. */
     public void publish(DomainEvent event) {
         events.publish(event);

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "intercept-the-message",
+    "type": "intercept_message",
+    "timeLimitTicks": 300,
+    "items": []
+  },
+  {
+    "id": "is-this-seal-real",
+    "type": "seal_check",
+    "timeLimitTicks": 300,
+    "items": ["1"]
+  }
+]
